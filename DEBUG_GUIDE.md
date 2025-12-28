@@ -151,31 +151,7 @@ npm run dev
 tail -f /tmp/backend.log
 ```
 
----
 
-## 📸 Screenshot Checklist
-
-When reporting errors, please provide:
-
-1. **Backend Logs:**
-   - Screenshot of terminal showing error
-   - OR copy/paste last 20-30 lines
-
-2. **Network Tab:**
-   - Screenshot of failed request
-   - Click on failed request and screenshot:
-     - Headers tab
-     - Response tab
-
-3. **Console Tab:**
-   - Screenshot of any red errors
-
-4. **What You Did:**
-   - What action triggered the error?
-   - What did you expect to happen?
-   - What actually happened?
-
----
 
 ## 🆘 Common Issues
 
@@ -202,11 +178,4 @@ When reporting errors, please provide:
 
 ---
 
-## 📞 Need More Help?
-
-Share:
-1. Backend log output (last 30-50 lines)
-2. Network tab screenshot (failed request)
-3. Console tab screenshot (any errors)
-4. What you were trying to do
 
