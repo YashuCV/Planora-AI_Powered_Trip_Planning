@@ -1,0 +1,190 @@
+{
+  "name": "Flight Booking",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "search-flights",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-flights",
+      "name": "Search Flights Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "search-flights"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and validate flight search parameters\nconst body = $input.first().json.body;\n\nconst searchParams = {\n  origin: body.origin,\n  destination: body.destination,\n  departureDate: body.departureDate,\n  returnDate: body.returnDate,\n  passengers: body.passengers || 1,\n  cabinClass: body.cabinClass || 'economy',\n  currency: 'USD'\n};\n\n// Validate required fields\nif (!searchParams.origin || !searchParams.destination || !searchParams.departureDate) {\n  return {\n    json: {\n      error: true,\n      message: 'Missing required fields: origin, destination, or departureDate'\n    }\n  };\n}\n\nreturn { json: searchParams };"
+      },
+      "id": "validate-params",
+      "name": "Validate Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://test.api.amadeus.com/v2/shopping/flight-offers",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "originLocationCode",
+              "value": "={{ $json.origin }}"
+            },
+            {
+              "name": "destinationLocationCode",
+              "value": "={{ $json.destination }}"
+            },
+            {
+              "name": "departureDate",
+              "value": "={{ $json.departureDate }}"
+            },
+            {
+              "name": "returnDate",
+              "value": "={{ $json.returnDate }}"
+            },
+            {
+              "name": "adults",
+              "value": "={{ $json.passengers }}"
+            },
+            {
+              "name": "travelClass",
+              "value": "={{ $json.cabinClass.toUpperCase() }}"
+            },
+            {
+              "name": "currencyCode",
+              "value": "USD"
+            },
+            {
+              "name": "max",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "amadeus-search",
+      "name": "Search Amadeus Flights",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [680, 200],
+      "credentials": {
+        "oAuth2Api": {
+          "id": "amadeus-credentials",
+          "name": "Amadeus API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate mock flight data for demo/development\nconst params = $input.first().json;\nconst basePrice = params.cabinClass === 'business' ? 2500 : params.cabinClass === 'first' ? 5000 : 450;\n\nconst airlines = ['United Airlines', 'Delta Air Lines', 'American Airlines', 'Japan Airlines', 'ANA', 'Singapore Airlines'];\nconst generateFlight = (index) => {\n  const airline = airlines[index % airlines.length];\n  const price = Math.round(basePrice * (0.8 + Math.random() * 0.6));\n  const departHour = 6 + Math.floor(Math.random() * 14);\n  const duration = 8 + Math.floor(Math.random() * 6);\n  \n  return {\n    id: `flight-${Date.now()}-${index}`,\n    airline: airline,\n    flightNumber: `${airline.substring(0, 2).toUpperCase()}${100 + Math.floor(Math.random() * 900)}`,\n    origin: params.origin,\n    destination: params.destination,\n    departureDate: params.departureDate,\n    departureTime: `${departHour.toString().padStart(2, '0')}:${(Math.floor(Math.random() * 4) * 15).toString().padStart(2, '0')}`,\n    arrivalTime: `${((departHour + duration) % 24).toString().padStart(2, '0')}:${(Math.floor(Math.random() * 4) * 15).toString().padStart(2, '0')}`,\n    duration: `${duration}h ${Math.floor(Math.random() * 60)}m`,\n    stops: Math.random() > 0.6 ? 1 : 0,\n    cabinClass: params.cabinClass,\n    price: price,\n    currency: 'USD',\n    seatsAvailable: 3 + Math.floor(Math.random() * 10),\n    baggage: {\n      carryOn: true,\n      checked: params.cabinClass !== 'economy' ? 2 : 1\n    }\n  };\n};\n\nconst flights = Array.from({ length: 8 }, (_, i) => generateFlight(i))\n  .sort((a, b) => a.price - b.price);\n\nreturn {\n  json: {\n    success: true,\n    searchParams: params,\n    count: flights.length,\n    flights: flights\n  }\n};"
+      },
+      "id": "mock-flights",
+      "name": "Generate Mock Flights",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process Amadeus API response or use mock data\nconst amadeusData = $('Search Amadeus Flights').first()?.json;\nconst mockData = $('Generate Mock Flights').first()?.json;\n\nlet flights;\nif (amadeusData?.data && amadeusData.data.length > 0) {\n  // Process real Amadeus data\n  flights = amadeusData.data.map((offer, index) => {\n    const segment = offer.itineraries[0].segments[0];\n    return {\n      id: offer.id,\n      airline: segment.carrierCode,\n      flightNumber: `${segment.carrierCode}${segment.number}`,\n      origin: segment.departure.iataCode,\n      destination: segment.arrival.iataCode,\n      departureDate: segment.departure.at.split('T')[0],\n      departureTime: segment.departure.at.split('T')[1].substring(0, 5),\n      arrivalTime: segment.arrival.at.split('T')[1].substring(0, 5),\n      duration: offer.itineraries[0].duration,\n      stops: offer.itineraries[0].segments.length - 1,\n      cabinClass: offer.travelerPricings[0].fareDetailsBySegment[0].cabin,\n      price: parseFloat(offer.price.total),\n      currency: offer.price.currency\n    };\n  });\n} else {\n  // Use mock data\n  flights = mockData.flights;\n}\n\nreturn {\n  json: {\n    success: true,\n    source: amadeusData?.data ? 'amadeus' : 'mock',\n    count: flights.length,\n    flights: flights\n  }\n};"
+      },
+      "id": "merge-flights",
+      "name": "Merge Flight Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-flights",
+      "name": "Respond with Flights",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Search Flights Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Parameters": {
+      "main": [
+        [
+          {
+            "node": "Search Amadeus Flights",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Mock Flights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Amadeus Flights": {
+      "main": [
+        [
+          {
+            "node": "Merge Flight Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Mock Flights": {
+      "main": [
+        [
+          {
+            "node": "Merge Flight Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Flight Results": {
+      "main": [
+        [
+          {
+            "node": "Respond with Flights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "travel-guide"
+    }
+  ]
+}
+
+

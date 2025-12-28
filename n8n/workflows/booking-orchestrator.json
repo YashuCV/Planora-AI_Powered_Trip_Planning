@@ -1,0 +1,258 @@
+{
+  "name": "Booking Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "book",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-book",
+      "name": "Booking Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "book"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\n\nconst bookingRequest = {\n  tripId: body.tripId,\n  type: body.type, // 'flight', 'hotel', 'activity'\n  providerId: body.providerId,\n  details: body.details || {}\n};\n\nif (!bookingRequest.tripId || !bookingRequest.type || !bookingRequest.providerId) {\n  return {\n    json: {\n      error: true,\n      message: 'Missing required fields: tripId, type, or providerId'\n    }\n  };\n}\n\nreturn { json: bookingRequest };"
+      },
+      "id": "validate-booking",
+      "name": "Validate Booking Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.type }}",
+              "value2": "flight"
+            }
+          ]
+        }
+      },
+      "id": "route-flight",
+      "name": "Is Flight?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.type }}",
+              "value2": "hotel"
+            }
+          ]
+        }
+      },
+      "id": "route-hotel",
+      "name": "Is Hotel?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process flight booking\nconst request = $input.first().json;\n\nconst booking = {\n  id: `booking-${Date.now()}`,\n  tripId: request.tripId,\n  bookingType: 'flight',\n  status: 'confirmed',\n  provider: 'Amadeus',\n  providerBookingId: `AMX${Date.now()}`,\n  details: request.details,\n  confirmationCode: `FL${Math.random().toString(36).substring(2, 8).toUpperCase()}`,\n  bookedAt: new Date().toISOString(),\n  price: request.details.price || 450,\n  currency: 'USD'\n};\n\nreturn { json: booking };"
+      },
+      "id": "process-flight-booking",
+      "name": "Process Flight Booking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process hotel booking\nconst request = $input.first().json;\n\nconst booking = {\n  id: `booking-${Date.now()}`,\n  tripId: request.tripId,\n  bookingType: 'hotel',\n  status: 'confirmed',\n  provider: 'Google Hotels',\n  providerBookingId: `HTL${Date.now()}`,\n  details: request.details,\n  confirmationCode: `HT${Math.random().toString(36).substring(2, 8).toUpperCase()}`,\n  bookedAt: new Date().toISOString(),\n  price: request.details.totalPrice || request.details.nightlyRate * 3 || 300,\n  currency: 'USD'\n};\n\nreturn { json: booking };"
+      },
+      "id": "process-hotel-booking",
+      "name": "Process Hotel Booking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process activity booking\nconst request = $input.first().json;\n\nconst booking = {\n  id: `booking-${Date.now()}`,\n  tripId: request.tripId,\n  bookingType: 'activity',\n  status: 'confirmed',\n  provider: 'Viator',\n  providerBookingId: `ACT${Date.now()}`,\n  details: request.details,\n  confirmationCode: `AC${Math.random().toString(36).substring(2, 8).toUpperCase()}`,\n  bookedAt: new Date().toISOString(),\n  price: request.details.price || 50,\n  currency: 'USD'\n};\n\nreturn { json: booking };"
+      },
+      "id": "process-activity-booking",
+      "name": "Process Activity Booking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": "public",
+        "table": "bookings",
+        "columns": "id, trip_id, booking_type, status, provider, provider_booking_id, details, price, currency, confirmation_code, booked_at",
+        "options": {}
+      },
+      "id": "save-booking",
+      "name": "Save Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [1120, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Travel Guide DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const booking = $input.first().json;\n\nreturn {\n  json: {\n    success: true,\n    message: `${booking.bookingType.charAt(0).toUpperCase() + booking.bookingType.slice(1)} booked successfully!`,\n    booking: {\n      id: booking.id,\n      type: booking.bookingType,\n      confirmationCode: booking.confirmationCode,\n      status: booking.status,\n      price: booking.price,\n      currency: booking.currency,\n      bookedAt: booking.bookedAt\n    }\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-booking",
+      "name": "Respond with Booking",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "Booking Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Booking Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Booking Request": {
+      "main": [
+        [
+          {
+            "node": "Is Flight?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Hotel?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Flight?": {
+      "main": [
+        [
+          {
+            "node": "Process Flight Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Process Activity Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Hotel?": {
+      "main": [
+        [
+          {
+            "node": "Process Hotel Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Flight Booking": {
+      "main": [
+        [
+          {
+            "node": "Save Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Hotel Booking": {
+      "main": [
+        [
+          {
+            "node": "Save Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Activity Booking": {
+      "main": [
+        [
+          {
+            "node": "Save Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Booking": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond with Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "travel-guide"
+    }
+  ]
+}
+
+

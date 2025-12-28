@@ -1,0 +1,162 @@
+{
+  "name": "Hotel Booking",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "search-hotels",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-hotels",
+      "name": "Search Hotels Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "search-hotels"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\n\nconst searchParams = {\n  location: body.location,\n  checkIn: body.checkIn,\n  checkOut: body.checkOut,\n  guests: body.guests || 2,\n  rooms: body.rooms || 1,\n  starRating: body.starRating || [3, 4, 5],\n  currency: 'USD'\n};\n\nif (!searchParams.location || !searchParams.checkIn || !searchParams.checkOut) {\n  return {\n    json: {\n      error: true,\n      message: 'Missing required fields: location, checkIn, or checkOut'\n    }\n  };\n}\n\nreturn { json: searchParams };"
+      },
+      "id": "validate-hotel-params",
+      "name": "Validate Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        "method": "GET",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.location }} hotels"
+            },
+            {
+              "name": "key",
+              "value": "={{ $env.GOOGLE_PLACES_API_KEY }}"
+            },
+            {
+              "name": "type",
+              "value": "lodging"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "google-hotels-search",
+      "name": "Search Google Places",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate mock hotel data for demo\nconst params = $input.first().json;\n\nconst hotelChains = [\n  { name: 'Park Hyatt', stars: 5, basePrice: 350 },\n  { name: 'The Ritz-Carlton', stars: 5, basePrice: 400 },\n  { name: 'Marriott', stars: 4, basePrice: 180 },\n  { name: 'Hilton', stars: 4, basePrice: 200 },\n  { name: 'Holiday Inn', stars: 3, basePrice: 120 },\n  { name: 'Best Western', stars: 3, basePrice: 100 },\n  { name: 'Boutique Hotel', stars: 4, basePrice: 220 },\n  { name: 'Grand Hotel', stars: 5, basePrice: 380 }\n];\n\nconst amenities = ['Free WiFi', 'Pool', 'Spa', 'Gym', 'Restaurant', 'Room Service', 'Concierge', 'Parking', 'Airport Shuttle', 'Business Center'];\n\nconst hotels = hotelChains\n  .filter(h => params.starRating.includes(h.stars))\n  .map((hotel, index) => {\n    const priceVariation = 0.8 + Math.random() * 0.4;\n    const nightlyRate = Math.round(hotel.basePrice * priceVariation);\n    const nights = Math.ceil((new Date(params.checkOut) - new Date(params.checkIn)) / (1000 * 60 * 60 * 24));\n    \n    return {\n      id: `hotel-${Date.now()}-${index}`,\n      name: `${hotel.name} ${params.location}`,\n      starRating: hotel.stars,\n      address: `${100 + index * 50} Main Street, ${params.location}`,\n      location: params.location,\n      rating: (4 + Math.random() * 0.9).toFixed(1),\n      reviewCount: 500 + Math.floor(Math.random() * 2000),\n      nightlyRate: nightlyRate,\n      totalPrice: nightlyRate * nights,\n      currency: 'USD',\n      nights: nights,\n      checkIn: params.checkIn,\n      checkOut: params.checkOut,\n      roomType: hotel.stars >= 4 ? 'Deluxe Room' : 'Standard Room',\n      amenities: amenities.sort(() => Math.random() - 0.5).slice(0, 4 + hotel.stars),\n      freeCancellation: Math.random() > 0.3,\n      breakfast: hotel.stars >= 4 ? 'Included' : 'Available ($25/day)',\n      images: [\n        `https://source.unsplash.com/800x600/?hotel,${hotel.name.toLowerCase().replace(' ', '-')}`\n      ]\n    };\n  })\n  .sort((a, b) => a.nightlyRate - b.nightlyRate);\n\nreturn {\n  json: {\n    success: true,\n    searchParams: params,\n    count: hotels.length,\n    hotels: hotels\n  }\n};"
+      },
+      "id": "generate-mock-hotels",
+      "name": "Generate Mock Hotels",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const googleData = $('Search Google Places').first()?.json;\nconst mockData = $('Generate Mock Hotels').first()?.json;\n\nlet hotels;\nif (googleData?.results && googleData.results.length > 0) {\n  // Enhance Google results with pricing\n  hotels = googleData.results.slice(0, 10).map((place, index) => {\n    const stars = place.rating >= 4.5 ? 5 : place.rating >= 4 ? 4 : 3;\n    const basePrice = stars === 5 ? 350 : stars === 4 ? 180 : 100;\n    const nights = mockData.searchParams.nights || 3;\n    \n    return {\n      id: place.place_id,\n      name: place.name,\n      starRating: stars,\n      address: place.formatted_address,\n      rating: place.rating,\n      reviewCount: place.user_ratings_total,\n      nightlyRate: basePrice,\n      totalPrice: basePrice * nights,\n      currency: 'USD',\n      photos: place.photos?.slice(0, 3)\n    };\n  });\n} else {\n  hotels = mockData.hotels;\n}\n\nreturn {\n  json: {\n    success: true,\n    source: googleData?.results ? 'google' : 'mock',\n    count: hotels.length,\n    hotels: hotels\n  }\n};"
+      },
+      "id": "merge-hotels",
+      "name": "Merge Hotel Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-hotels",
+      "name": "Respond with Hotels",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Search Hotels Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Parameters": {
+      "main": [
+        [
+          {
+            "node": "Search Google Places",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Mock Hotels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Google Places": {
+      "main": [
+        [
+          {
+            "node": "Merge Hotel Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Mock Hotels": {
+      "main": [
+        [
+          {
+            "node": "Merge Hotel Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Hotel Results": {
+      "main": [
+        [
+          {
+            "node": "Respond with Hotels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "travel-guide"
+    }
+  ]
+}
+
+

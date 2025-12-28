@@ -1,0 +1,26 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
+
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    port: 5173, // Changed to 5173 to avoid conflict with backend
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001', // Backend API (Express)
+        changeOrigin: true,
+      },
+      '/webhook': {
+        target: 'http://localhost:5678', // n8n webhooks for AI workflows
+        changeOrigin: true,
+      },
+    },
+  },
+})
+

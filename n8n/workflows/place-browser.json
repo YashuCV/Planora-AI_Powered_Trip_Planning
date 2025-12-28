@@ -1,0 +1,188 @@
+{
+  "name": "Place Browser",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "search-places",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-places",
+      "name": "Search Places Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "search-places"
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        "method": "GET",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.body.query }} tourist attractions"
+            },
+            {
+              "name": "key",
+              "value": "={{ $env.GOOGLE_PLACES_API_KEY }}"
+            },
+            {
+              "name": "type",
+              "value": "tourist_attraction"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "google-places-search",
+      "name": "Google Places Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $input.first().json.results || [];\nconst query = $('Search Places Webhook').first().json.body.query;\nconst location = $('Search Places Webhook').first().json.body.location;\n\nconst places = results.slice(0, 10).map((place, index) => ({\n  id: place.place_id,\n  name: place.name,\n  address: place.formatted_address,\n  rating: place.rating,\n  userRatingsTotal: place.user_ratings_total,\n  priceLevel: place.price_level,\n  types: place.types,\n  location: place.geometry?.location,\n  photos: place.photos?.slice(0, 3).map(p => ({\n    reference: p.photo_reference,\n    width: p.width,\n    height: p.height\n  })),\n  openNow: place.opening_hours?.open_now,\n  rank: index + 1\n}));\n\nreturn {\n  json: {\n    success: true,\n    query: query,\n    location: location,\n    count: places.length,\n    places: places\n  }\n};"
+      },
+      "id": "process-places",
+      "name": "Process Places",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "messages": {
+          "values": [
+            {
+              "content": "You are a knowledgeable travel guide. Given a list of places, provide brief but helpful insights for each.\n\nFor each place, add:\n- A one-sentence description of why it's worth visiting\n- Best time to visit (morning/afternoon/evening)\n- Estimated visit duration in minutes\n- A tip for visitors\n\nRespond with a JSON array matching the input places, adding the new fields.",
+              "role": "system"
+            },
+            {
+              "content": "Places to enhance: {{ JSON.stringify($json.places) }}",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.5,
+          "maxTokens": 2000
+        }
+      },
+      "id": "enhance-with-ai",
+      "name": "Enhance Places with AI",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.2,
+      "position": [900, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const originalData = $('Process Places').first().json;\nconst aiResponse = $input.first().json;\n\nlet enhancedPlaces;\ntry {\n  const content = aiResponse.message?.content || aiResponse.choices?.[0]?.message?.content;\n  enhancedPlaces = JSON.parse(content);\n} catch (e) {\n  // If AI parsing fails, use original data with default enhancements\n  enhancedPlaces = originalData.places.map(place => ({\n    ...place,\n    description: `A popular attraction in ${originalData.query}`,\n    bestTimeToVisit: 'morning',\n    estimatedDuration: 90,\n    tip: 'Arrive early to avoid crowds'\n  }));\n}\n\nreturn {\n  json: {\n    success: true,\n    query: originalData.query,\n    count: enhancedPlaces.length,\n    places: enhancedPlaces\n  }\n};"
+      },
+      "id": "merge-data",
+      "name": "Merge AI Enhancements",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-places",
+      "name": "Respond with Places",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    }
+  ],
+  "connections": {
+    "Search Places Webhook": {
+      "main": [
+        [
+          {
+            "node": "Google Places Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Places Search": {
+      "main": [
+        [
+          {
+            "node": "Process Places",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Places": {
+      "main": [
+        [
+          {
+            "node": "Enhance Places with AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enhance Places with AI": {
+      "main": [
+        [
+          {
+            "node": "Merge AI Enhancements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge AI Enhancements": {
+      "main": [
+        [
+          {
+            "node": "Respond with Places",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "travel-guide"
+    }
+  ]
+}
+
+
