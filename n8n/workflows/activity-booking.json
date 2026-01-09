@@ -77,7 +77,7 @@
         },
         "options": {
           "temperature": 0.6,
-          "maxTokens": 2500
+          "maxTokens": 3000
         }
       },
       "id": "enhance-activities",
