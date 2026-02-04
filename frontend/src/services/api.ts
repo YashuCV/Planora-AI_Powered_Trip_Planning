@@ -3,8 +3,6 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 // Backend API for authentication and core features
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
-// Note: n8n is no longer used - all functionality moved to backend
-
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {

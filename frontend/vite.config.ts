@@ -13,11 +13,7 @@ export default defineConfig({
     port: 5173, // Changed to 5173 to avoid conflict with backend
     proxy: {
       '/api': {
-        target: 'http://localhost:3001', // Backend API (Express)
-        changeOrigin: true,
-      },
-      '/webhook': {
-        target: 'http://localhost:5678', // n8n webhooks for AI workflows
+        target: 'http://localhost:3001',
         changeOrigin: true,
       },
     },

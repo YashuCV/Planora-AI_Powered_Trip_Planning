@@ -1,49 +1,46 @@
-# Travel Guide AI
+# Planora – AI-Powered Trip Planning
 
 An AI-powered travel planning assistant that helps you plan complete trips with detailed day-by-day itineraries, including activities, dining, and attractions.
 
 ## Features
 
-- **Natural Language Trip Planning**: Describe your trip in plain English, and the AI will understand your needs
-- **Smart Itinerary Generation**: Automatically creates detailed day-by-day itineraries with specific attractions, restaurants, and activities
-- **User Authentication**: Secure login with JWT and password hashing
+- **Natural Language Trip Planning**: Describe your trip in plain English; the AI parses your needs
+- **Smart Itinerary Generation**: Day-by-day itineraries with attractions, restaurants, and activities
+- **User Authentication**: JWT and bcrypt for secure login
 - **Trip Management**: Create, view, and delete trips
-- **Detailed Itineraries**: View complete day-by-day plans with times, locations, and descriptions
+- **Detailed Itineraries**: Day-by-day plans with times, locations, and descriptions
 
 ## Tech Stack
 
-- **Frontend**: React 18 + TypeScript + Tailwind CSS + Vite
-- **Backend**: Node.js + Express (Authentication, Trip Management, AI Integration)
-- **AI/LLM**: Groq API (llama-3.3-70b-versatile) - Free alternative to OpenAI
+- **Frontend**: React 18, TypeScript, Tailwind CSS, Vite
+- **Backend**: Node.js, Express (auth, trips, AI integration)
+- **AI**: Groq API (llama-3.3-70b-versatile)
 - **Database**: PostgreSQL
-- **Authentication**: JWT (bcrypt for password hashing)
-- **Optional**: n8n (for booking workflows - not required for core functionality)
+- **Auth**: JWT, bcrypt
 
 ## Project Structure
 
 ```
-Travel Guide/
-├── frontend/           # React application
+Planora/
+├── frontend/           # React app
 │   ├── src/
-│   │   ├── components/ # Reusable UI components
-│   │   ├── pages/      # Page components (Dashboard, Itinerary, etc.)
-│   │   ├── services/   # API services
-│   │   ├── hooks/      # Custom React hooks
-│   │   ├── context/    # React context providers (Auth)
-│   │   └── utils/        # Utility functions
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   ├── hooks/
+│   │   ├── context/
+│   │   └── utils/
 │   └── package.json
-├── backend/            # Node.js/Express backend
+├── backend/            # Express API
 │   ├── src/
-│   │   ├── controllers/ # Request handlers (auth, trips, itinerary)
-│   │   ├── routes/      # API routes
-│   │   ├── middleware/  # Auth middleware
-│   │   └── config/      # Database config
+│   │   ├── controllers/
+│   │   ├── routes/
+│   │   ├── middleware/
+│   │   └── config/
 │   └── package.json
-├── n8n/                # Optional: n8n workflow configurations
-│   ├── workflows/      # Workflow JSON files (booking, calendar sync)
-│   └── docker-compose.yml
-├── database/           # Database schema
-│   └── init.sql
+├── database/
+│   ├── init.sql        # Schema
+│   └── docker-compose.yml   # PostgreSQL only
 └── README.md
 ```
 
@@ -52,193 +49,127 @@ Travel Guide/
 ### Prerequisites
 
 - Node.js 18+
-- Docker & Docker Compose (for PostgreSQL and optional n8n)
-- Groq API key (free at https://console.groq.com)
+- Docker & Docker Compose (for PostgreSQL)
+- Groq API key: https://console.groq.com
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone and enter the project**
    ```bash
    git clone <repository-url>
-   cd "Travel Guide"
+   cd "Planora - AI Powered Trip Planning"
    ```
 
-2. **Start the database (and optional n8n)**
+2. **Start PostgreSQL**
    ```bash
-   cd n8n
+   cd database
    docker-compose up -d
    ```
-   This starts:
-   - PostgreSQL database on port 5432
-   - n8n (optional) on port 5678
 
-3. **Set up the backend**
+3. **Backend**
    ```bash
    cd backend
    npm install
-   cp .env.example .env  # Create .env file if it doesn't exist
+   cp .env.example .env   # if present, or create .env
    ```
-   
-   Edit `backend/.env` with your configuration:
+   Set in `backend/.env`:
    ```env
-   # Database
    DB_HOST=localhost
    DB_PORT=5432
    DB_NAME=travelguide
    DB_USER=travelguide
    DB_PASSWORD=travelguide_secret
-   
-   # JWT
+
    JWT_SECRET=your-secret-key-change-this
-   
-   # Groq API (Free AI)
-   GROQ_API_KEY=your-groq-api-key-here
+
+   GROQ_API_KEY=your-groq-api-key
    GROQ_API_URL=https://api.groq.com/openai/v1/chat/completions
    ```
-   
-   Start the backend:
+   Then:
    ```bash
-   npm run dev  # Starts on http://localhost:3001
+   npm run dev   # http://localhost:3001
    ```
 
-4. **Set up the frontend**
+4. **Frontend**
    ```bash
    cd frontend
    npm install
-   npm run dev  # Starts on http://localhost:5173
+   npm run dev   # http://localhost:5173
    ```
 
-5. **Access the application**
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:3001
-   - n8n Dashboard (optional): http://localhost:5678
+5. **Use the app**
+   - App: http://localhost:5173
+   - API: http://localhost:3001
 
-## Environment Variables
+## Environment Variables (Backend)
 
-### Backend (.env)
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DB_HOST` | PostgreSQL host | Yes |
-| `DB_PORT` | PostgreSQL port | Yes |
-| `DB_NAME` | Database name | Yes |
-| `DB_USER` | Database user | Yes |
-| `DB_PASSWORD` | Database password | Yes |
-| `JWT_SECRET` | Secret key for JWT tokens | Yes |
-| `GROQ_API_KEY` | Groq API key (get from https://console.groq.com) | Yes |
-| `GROQ_API_URL` | Groq API endpoint | Yes (default provided) |
-
-### n8n (docker-compose.yml)
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `N8N_BASIC_AUTH_USER` | n8n admin username | admin |
-| `N8N_BASIC_AUTH_PASSWORD` | n8n admin password | admin |
+| Variable        | Description              | Required |
+|----------------|--------------------------|----------|
+| `DB_HOST`      | PostgreSQL host          | Yes      |
+| `DB_PORT`      | PostgreSQL port          | Yes      |
+| `DB_NAME`      | Database name            | Yes      |
+| `DB_USER`      | Database user            | Yes      |
+| `DB_PASSWORD`  | Database password        | Yes      |
+| `JWT_SECRET`   | JWT signing secret       | Yes      |
+| `GROQ_API_KEY` | Groq API key             | Yes      |
+| `GROQ_API_URL` | Groq API endpoint        | Yes      |
 
 ## Usage
 
-1. **Sign up/Login**: Create an account or sign in
-2. **Plan a Trip**: Enter a natural language description like:
-   > "Plan a 4-day trip to Tokyo for 2 people. We love food, technology, and traditional culture."
-3. **View Itinerary**: The AI will generate a detailed day-by-day itinerary with:
-   - Specific attractions and landmarks
-   - Restaurant recommendations with names
-   - Activities grouped by location
-   - Times, durations, and prices
-4. **Manage Trips**: View all your trips on the dashboard and delete them as needed
+1. **Sign up / Log in** on the app
+2. **Plan a trip** with a natural language request, e.g.  
+   *"4-day trip to Tokyo for 2 people. We like food, tech, and traditional culture."*
+3. **View itinerary** – day-by-day plan with places, restaurants, and activities
+4. **Manage trips** from the dashboard (view, delete)
 
 ## API Endpoints
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user (requires auth)
+### Auth
+- `POST /api/auth/register` – Register
+- `POST /api/auth/login` – Login
+- `GET /api/auth/me` – Current user (auth required)
 
 ### Trips
-- `GET /api/trips` - Get all trips for current user
-- `POST /api/trips` - Create a new trip (AI-powered parsing)
-- `GET /api/trips/:id` - Get trip details
-- `DELETE /api/trips/:id` - Delete a trip
+- `GET /api/trips` – List user trips
+- `POST /api/trips` – Create trip (AI parsing)
+- `GET /api/trips/:id` – Trip details
+- `DELETE /api/trips/:id` – Delete trip
 
 ### Itineraries
-- `GET /api/itinerary/:tripId` - Get itinerary for a trip
-- `POST /api/itinerary/generate/:tripId` - Generate itinerary (auto-triggered on trip creation)
+- `GET /api/itinerary/:tripId` – Get itinerary
+- `POST /api/itinerary/generate/:tripId` – Generate (often triggered on trip creation)
 
 ## Architecture
 
-### Current Architecture
-
 ```
-Frontend (React) → Backend (Express) → Groq API → Database (PostgreSQL)
+Frontend (React) → Backend (Express) → Groq API
+                         ↓
+                  PostgreSQL
 ```
 
-- **Frontend**: React SPA that calls backend API
-- **Backend**: Handles all business logic, AI calls, database operations
-- **Groq API**: Free AI service for trip parsing and itinerary generation
-- **Database**: PostgreSQL for storing users, trips, and itineraries
-- **n8n**: Optional, used for booking workflows (not required for core functionality)
-
-### Why This Architecture?
-
-- ✅ **Backend handles AI**: All AI logic in one place, easier to debug and maintain
-- ✅ **Free AI**: Uses Groq API (free) instead of paid OpenAI
-- ✅ **Standard REST API**: Easy to test and integrate
-- ✅ **Simple**: No complex workflow automation needed for core features
+- **Frontend**: SPA calling backend API
+- **Backend**: Auth, trip CRUD, AI calls, DB
+- **Groq**: Trip parsing and itinerary generation
+- **PostgreSQL**: Users, trips, itineraries
 
 ## Development
 
-### Frontend Development
-```bash
-cd frontend
-npm run dev
-```
-
-### Backend Development
-```bash
-cd backend
-npm run dev  # Auto-reloads on changes
-```
-
-### Database
-
-The database schema is automatically initialized when you start the PostgreSQL container via `docker-compose up`.
-
-To connect to the database:
-```bash
-docker exec -it travel-guide-db psql -U travelguide -d travelguide
-```
-
-### n8n (Optional)
-
-n8n is included for optional booking workflows (flights, hotels, activities, calendar sync). It's not required for the core trip planning functionality.
-
-To use n8n:
-1. Access http://localhost:5678
-2. Import workflows from `n8n/workflows/`
-3. Configure credentials as needed
+- **Frontend**: `cd frontend && npm run dev`
+- **Backend**: `cd backend && npm run dev`
+- **DB**: Schema is applied when the Postgres container starts. Connect:
+  ```bash
+  docker exec -it planora-db psql -U travelguide -d travelguide
+  ```
 
 ## Troubleshooting
 
-### Backend not starting
-- Check that PostgreSQL is running: `docker ps`
-- Verify database credentials in `backend/.env`
-- Check backend logs for errors
+- **Backend won’t start**: Check Postgres is up (`docker ps`), and `backend/.env` credentials.
+- **Frontend can’t reach backend**: Ensure backend runs on 3001; check CORS and `VITE_API_URL` if used.
+- **DB connection errors**: Containers running; credentials in `backend/.env` match `database/docker-compose.yml`.
+- **Itinerary not generating**: Set `GROQ_API_KEY` in `backend/.env` and confirm key at https://console.groq.com.
 
-### Frontend not connecting to backend
-- Verify backend is running on port 3001
-- Check browser console for CORS errors
-- Ensure `VITE_API_URL` is set correctly (if using environment variables)
-
-### Database connection errors
-- Ensure Docker containers are running: `docker ps`
-- Check database credentials match in `backend/.env` and `n8n/docker-compose.yml`
-- Restart containers: `cd n8n && docker-compose restart`
-
-### AI not generating itineraries
-- Verify `GROQ_API_KEY` is set in `backend/.env`
-- Check backend logs for API errors
-- Ensure you have a valid Groq API key from https://console.groq.com
+See **DEBUG_GUIDE.md** for log and network debugging.
 
 ## License
 
-MIT License
+MIT

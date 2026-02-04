@@ -1,4 +1,4 @@
-# Travel Guide Backend API
+# Planora Backend API
 
 Node.js/Express backend for authentication, trip management, and AI-powered itinerary generation.
 
@@ -170,5 +170,4 @@ npm run dev
 
 ## See Also
 
-- [Groq API Setup Guide](./GROK_SETUP.md) - Detailed Groq API configuration
 - [Main README](../README.md) - Full project documentation
