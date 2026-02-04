@@ -1,7 +1,6 @@
 import { ReactNode } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { motion } from 'framer-motion'
 import {
   Globe,
   Map,
@@ -45,14 +44,13 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex justify-between h-16">
             {/* Logo */}
             <Link to="/dashboard" className="flex items-center gap-3 group">
-              <motion.div
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.5 }}
+              <div
                 className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl
-                         flex items-center justify-center shadow-lg shadow-primary-500/25"
+                         flex items-center justify-center shadow-lg shadow-primary-500/25
+                         transition-transform duration-300 group-hover:rotate-12"
               >
                 <Plane className="w-5 h-5 text-white" />
-              </motion.div>
+              </div>
               <span className="font-display text-xl font-semibold text-earth-800">
                 Travel Guide
               </span>
@@ -111,12 +109,7 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="md:hidden bg-white/90 backdrop-blur-lg border-t border-white/20"
-          >
+          <div className="md:hidden bg-white/95 border-t border-white/20 animate-slide-down">
             <div className="px-4 py-4 space-y-2">
               {navItems.map((item) => {
                 const isActive = location.pathname === item.path
@@ -151,7 +144,7 @@ export default function Layout({ children }: LayoutProps) {
                 Logout
               </button>
             </div>
-          </motion.div>
+          </div>
         )}
       </nav>
 

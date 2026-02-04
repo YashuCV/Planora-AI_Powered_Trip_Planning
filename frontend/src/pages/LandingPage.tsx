@@ -164,23 +164,13 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Floating Elements */}
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-xl p-3
-                         border border-earth-100"
-              >
+              {/* Decorative icons - CSS animation to avoid JS-driven lag */}
+              <div className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-xl p-3 border border-earth-100 animate-float">
                 <Calendar className="w-6 h-6 text-primary-500" />
-              </motion.div>
-              <motion.div
-                animate={{ y: [0, 10, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-                className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-xl p-3
-                         border border-earth-100"
-              >
+              </div>
+              <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-xl p-3 border border-earth-100 animate-float-slow">
                 <Globe className="w-6 h-6 text-ocean-500" />
-              </motion.div>
+              </div>
             </div>
           </motion.div>
         </div>

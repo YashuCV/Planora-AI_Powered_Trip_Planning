@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react'
 import { authService, User } from '../services/auth'
 
 interface AuthContextType {
@@ -18,7 +18,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check for existing session
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('token')
@@ -35,45 +34,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth()
   }, [])
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     const { user: userData, token } = await authService.login(email, password)
     localStorage.setItem('token', token)
     setUser(userData)
-  }
+  }, [])
 
-  const register = async (email: string, password: string, fullName: string) => {
+  const register = useCallback(async (email: string, password: string, fullName: string) => {
     const { user: userData, token } = await authService.register(email, password, fullName)
     localStorage.setItem('token', token)
     setUser(userData)
-  }
+  }, [])
 
-  const loginWithGoogle = async () => {
-    // Redirect to Google OAuth flow
+  const loginWithGoogle = useCallback(async () => {
     const { user: userData, token } = await authService.loginWithGoogle()
     localStorage.setItem('token', token)
     setUser(userData)
-  }
+  }, [])
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token')
     setUser(null)
-  }
+  }, [])
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        register,
-        loginWithGoogle,
-        logout,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      user,
+      isAuthenticated: !!user,
+      isLoading,
+      login,
+      register,
+      loginWithGoogle,
+      logout,
+    }),
+    [user, isLoading, login, register, loginWithGoogle, logout]
   )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
